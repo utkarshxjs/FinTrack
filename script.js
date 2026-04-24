@@ -965,3 +965,36 @@ updateCurrencyUI();
 processRecurring();
 render();
 renderDueSoon();
+// Add this function somewhere in your JS file
+async function fetchFinTrackInsight() {
+  const rawTotals = localStorage.getItem('fintrack_totals'); 
+  const spendingData = rawTotals ? JSON.parse(rawTotals) : { message: "No data yet." };
+
+  try {
+    // We are calling YOUR new secure file, not Google directly
+    const response = await fetch('/api/insight', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ spendingData: spendingData })
+    });
+
+    const data = await response.json();
+
+    if (data.insight) {
+      console.log("Insight generated!");
+      // Make sure you have an element with id="insight-box" in your HTML
+      document.getElementById('insight-box').innerText = data.insight;
+    } else {
+      console.error("Error generating insight:", data.error);
+    }
+  } catch (error) {
+    console.error("Fetch request failed:", error);
+  }
+}
+
+// Example of how to trigger it when a button is clicked
+// Make sure you have a button with id="generate-btn" in your HTML
+document.getElementById('generate-btn').addEventListener('click', async () => {
+  document.getElementById('insight-box').innerText = "Analyzing your spending...";
+  await fetchFinTrackInsight();
+});
