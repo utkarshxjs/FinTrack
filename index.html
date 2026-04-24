@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="FinTrack" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <link rel="stylesheet" href="style.css" />
@@ -24,7 +24,8 @@
         <h1>FinTrack</h1>
       </div>
       <div class="header-actions">
-        <button id="aiBtn"       class="btn-ai">✨ AI Insights</button>
+        <button id="healthBtn"   class="btn-health">💪 Health Score</button>
+        <button id="billsBtn"    class="btn-bills">🔔 Bills</button>
         <button id="currencyBtn" class="btn-secondary">💱 Currency</button>
         <button id="reportBtn"   class="btn-secondary">📊 Report</button>
         <button id="exportBtn"   class="btn-secondary">⬇ CSV</button>
@@ -42,19 +43,22 @@
         <div class="stat-value" id="balance">0</div>
         <div class="stat-bar"><div id="balanceBar" class="bar-fill"></div></div>
       </div>
-      <div class="card stat-card">
+      <div class="card stat-card income-card">
         <div class="stat-label">↑ Income</div>
         <div class="stat-value income-text" id="income">0</div>
       </div>
-      <div class="card stat-card">
+      <div class="card stat-card expense-card">
         <div class="stat-label">↓ Expenses</div>
         <div class="stat-value expense-text" id="expense">0</div>
       </div>
-      <div class="card stat-card">
+      <div class="card stat-card savings-card">
         <div class="stat-label">Savings Rate</div>
         <div class="stat-value" id="savingsRate">0%</div>
       </div>
     </section>
+
+    <!-- Due Soon Strip -->
+    <section id="dueSoonStrip" style="display:none"></section>
 
     <!-- Savings Goals Strip -->
     <section id="goalsStrip" class="goals-strip" style="display:none"></section>
@@ -176,37 +180,75 @@
     <footer>© 2026 Utkarsh Mishra · Built with Focus</footer>
   </div>
 
-  <!-- ══ AI INSIGHTS MODAL ══ -->
-  <div id="aiModal" class="modal-overlay" style="display:none" onclick="aiOverlayClose(event)">
-    <div class="modal-box ai-modal-box">
+  <!-- ══ HEALTH SCORE MODAL ══ -->
+  <div id="healthModal" class="modal-overlay" style="display:none" onclick="healthOverlayClose(event)">
+    <div class="modal-box health-modal-box">
       <div class="modal-header">
-        <div class="ai-header-left">
-          <div class="ai-header-icon">✨</div>
+        <div class="modal-header-left">
+          <div class="modal-header-icon health-icon-bg">💪</div>
           <div>
-            <h2 class="modal-title">AI Spending Insights</h2>
-            <p class="modal-sub">Powered by Google Gemini · Analyses your real data</p>
+            <h2 class="modal-title">Financial Health Score</h2>
+            <p class="modal-sub">Calculated from your real spending data</p>
           </div>
         </div>
-        <button onclick="closeAiModal()" class="btn-icon">✕</button>
+        <button onclick="closeHealthModal()" class="btn-icon">✕</button>
       </div>
-      <div class="ai-modal-body">
-        <div id="aiIdle" class="ai-idle-state">
-          <div class="ai-idle-icon">🧠</div>
-          <p class="ai-idle-text">Let Gemini analyse your spending patterns and give you personalised tips.</p>
-          <button id="getInsightsBtn" onclick="getAIInsights()" class="btn-ai full-width ai-analyse-btn">✨ Analyse My Spending</button>
+      <div class="health-modal-body">
+        <div class="score-ring-wrap">
+          <svg viewBox="0 0 140 140" class="score-ring" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="scoreGradRed"   x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#fb923c"/></linearGradient>
+              <linearGradient id="scoreGradYellow" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient>
+              <linearGradient id="scoreGradGreen" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#34d399"/></linearGradient>
+            </defs>
+            <circle cx="70" cy="70" r="58" fill="none" stroke="var(--border)" stroke-width="10"/>
+            <circle cx="70" cy="70" r="58" fill="none" stroke="url(#scoreGradGreen)" stroke-width="10"
+              stroke-dasharray="364.42" stroke-dashoffset="364.42"
+              stroke-linecap="round" transform="rotate(-90 70 70)"
+              id="scoreArc" style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1),stroke .4s"/>
+            <text x="70" y="65" text-anchor="middle" id="scoreNumber" class="score-number-text">0</text>
+            <text x="70" y="82" text-anchor="middle" class="score-sub-text">/100</text>
+          </svg>
+          <div class="score-label" id="scoreLabel">—</div>
         </div>
-        <div id="aiLoading" style="display:none" class="ai-loading">
-          <div class="ai-pulse">
-            <div class="ai-pulse-ring"></div>
-            <span class="ai-pulse-icon">✨</span>
+        <div id="scoreBreakdown" class="score-breakdown"></div>
+        <div id="scoreTips" class="score-tips"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ BILLS MODAL ══ -->
+  <div id="billsModal" class="modal-overlay" style="display:none" onclick="billsOverlayClose(event)">
+    <div class="modal-box bills-modal-box">
+      <div class="modal-header">
+        <div class="modal-header-left">
+          <div class="modal-header-icon bills-icon-bg">🔔</div>
+          <div>
+            <h2 class="modal-title">Bill Reminders</h2>
+            <p class="modal-sub">Track upcoming bills — visual reminders, no push needed</p>
           </div>
-          <p class="ai-loading-text">Gemini is reading your finances…</p>
-          <p class="ai-loading-sub">This takes a few seconds</p>
         </div>
-        <div id="aiResult" class="ai-result" style="display:none">
-          <div id="aiInsightCards"></div>
-          <button onclick="resetAiModal()" class="btn-secondary full-width" style="margin-top:16px">🔄 Analyse Again</button>
+        <button onclick="closeBillsModal()" class="btn-icon">✕</button>
+      </div>
+      <div class="bills-modal-body">
+        <div class="bill-add-form">
+          <h4 class="section-label">Add a Bill</h4>
+          <div class="bill-form-grid">
+            <input type="text"   id="billName"    placeholder="Bill name (e.g. Rent, Netflix)" />
+            <input type="number" id="billAmount"  placeholder="Amount" />
+            <input type="date"   id="billDueDate" />
+            <div class="select-wrapper">
+              <select id="billRepeat">
+                <option value="once">One time</option>
+                <option value="monthly" selected>Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+          </div>
+          <button onclick="addBill()" class="btn-primary" style="margin-top:10px;padding:10px 24px">+ Add Bill</button>
         </div>
+        <div id="billsList" class="bills-list"></div>
       </div>
     </div>
   </div>
