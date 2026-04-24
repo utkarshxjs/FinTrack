@@ -56,6 +56,11 @@ button{cursor:pointer;border:none;border-radius:var(--radius-sm);font-family:'So
   box-shadow:0 4px 12px rgba(217,119,6,.3);
 }
 .btn-bills:hover{opacity:.9;transform:translateY(-1px);}
+.btn-insights{
+  background:linear-gradient(135deg,#06b6d4,#4f46e5);color:white;padding:8px 16px;
+  box-shadow:0 4px 12px rgba(6,182,212,.35);
+}
+.btn-insights:hover{opacity:.9;transform:translateY(-1px);}
 .full-width{width:100%;}
 .sm{padding:7px 12px;font-size:.8rem;}
 
@@ -242,6 +247,34 @@ select{appearance:none;padding-right:30px;cursor:pointer;}
 .modal-sub{font-size:.82rem;color:var(--muted);margin-top:3px;}
 .modal-actions{display:flex;gap:8px;align-items:center;}
 
+/* ══ GROQ INSIGHTS MODAL ══ */
+.insights-modal-box{max-width:560px;}
+.insights-icon-bg{background:linear-gradient(135deg,#06b6d4,#4f46e5);box-shadow:0 4px 14px rgba(6,182,212,.35);}
+.insights-modal-body{padding:28px;}
+.insights-idle{text-align:center;padding:10px 0 6px;}
+.insights-idle-icon{font-size:3rem;margin-bottom:14px;}
+.insights-idle-text{font-size:.9rem;color:var(--muted);margin-bottom:22px;line-height:1.6;}
+.insights-analyse-btn{padding:14px!important;font-size:.95rem!important;border-radius:12px!important;}
+.insights-loading{display:flex;flex-direction:column;align-items:center;padding:36px 20px;gap:16px;}
+.insights-pulse{position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;}
+.insights-pulse-ring{position:absolute;inset:0;border-radius:50%;border:2px solid #06b6d4;animation:insightPulse 1.4s ease-out infinite;opacity:.6;}
+.insights-pulse-icon{font-size:1.7rem;animation:insightFade 1.4s ease-in-out infinite;}
+@keyframes insightPulse{0%{transform:scale(.8);opacity:.8}100%{transform:scale(1.5);opacity:0}}
+@keyframes insightFade{0%,100%{opacity:.5}50%{opacity:1}}
+.insights-loading-text{font-size:.95rem;font-weight:600;}
+.insights-loading-sub{font-size:.78rem;color:var(--muted);}
+.insights-result{margin-top:4px;}
+.insight-card{
+  background:var(--bg);border:1px solid var(--border);border-radius:13px;
+  padding:16px 18px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start;
+  transition:transform var(--transition),box-shadow var(--transition);
+}
+.insight-card:hover{transform:translateX(3px);box-shadow:var(--shadow);}
+.insight-icon{font-size:1.5rem;flex-shrink:0;margin-top:1px;}
+.insight-body{flex:1;min-width:0;}
+.insight-title{font-size:.8rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.insight-text{font-size:.86rem;line-height:1.65;color:var(--text);}
+
 /* ══ HEALTH SCORE MODAL ══ */
 .health-modal-box{max-width:580px;}
 .health-modal-body{padding:28px;}
@@ -294,7 +327,6 @@ select{appearance:none;padding-right:30px;cursor:pointer;}
 .bill-item.ok::before{background:var(--income);}
 .bill-item:hover{border-color:var(--border);transform:translateX(2px);}
 .bill-item:hover .delete-btn{opacity:1;}
-.bill-icon-wrap{}
 .bill-icon{width:38px;height:38px;border-radius:11px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
 .bill-info{flex:1;min-width:0;}
 .bill-name{font-size:.88rem;font-weight:700;margin-bottom:3px;}

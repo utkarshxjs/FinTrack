@@ -1,43 +1,52 @@
 export default async function handler(req, res) {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { spendingData } = req.body;
-  
-  // This pulls your key securely from Vercel's environment variables
-  const API_KEY = process.env.GEMINI_API_KEY; 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "Missing GROQ_API_KEY on the server" });
+  }
 
-  const prompt = `
-    You are a financial assistant for the FinTrack app. 
-    Here is the user's spending summary for this month by category: ${JSON.stringify(spendingData)}. 
-    Write a short, 3-sentence summary for their dashboard. 
-    1. Acknowledge their biggest expense category.
-    2. Point out an area where they might be able to save money.
-    3. End with a brief, encouraging financial tip. 
-    Keep the tone friendly and direct. Do not use markdown.
-  `;
+  const { summary, prompt } = req.body ?? {};
+  if (!summary || !prompt) {
+    return res.status(400).json({ error: "Missing prompt payload" });
+  }
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      })
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a concise personal finance advisor. Always respond with valid JSON arrays only. No markdown, no explanation outside the JSON.",
+          },
+          { role: "user", content: `${prompt}\n\n${summary}` },
+        ],
+        temperature: 0.7,
+        max_tokens: 1024,
+      }),
     });
 
     const data = await response.json();
-
-    if (data.candidates && data.candidates.length > 0) {
-      const insightText = data.candidates[0].content.parts[0].text;
-      return res.status(200).json({ insight: insightText });
-    } else {
-      return res.status(500).json({ error: "Failed to parse AI response" });
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: data?.error?.message || `Groq request failed with HTTP ${response.status}`,
+      });
     }
+
+    const text = data.choices?.[0]?.message?.content || "";
+    return res.status(200).json({ insights: text });
   } catch (error) {
-    return res.status(500).json({ error: "Server error connecting to AI" });
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : "Unexpected server error",
+    });
   }
 }

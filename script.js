@@ -238,6 +238,113 @@ function renderGoals(){
 }
 
 // ══════════════════════════════════════════════
+//  GROQ AI INSIGHTS
+// ══════════════════════════════════════════════
+document.getElementById("insightsBtn").addEventListener("click", openInsightsModal);
+
+function openInsightsModal(){
+  document.getElementById("insightsModal").style.display="flex";
+  document.body.style.overflow="hidden";
+  resetInsightsModal();
+}
+function closeInsightsModal(){
+  document.getElementById("insightsModal").style.display="none";
+  document.body.style.overflow="";
+}
+function insightsOverlayClose(e){
+  if(e.target===document.getElementById("insightsModal")) closeInsightsModal();
+}
+function resetInsightsModal(){
+  document.getElementById("insightsIdle").style.display="block";
+  document.getElementById("insightsLoading").style.display="none";
+  document.getElementById("insightsResult").style.display="none";
+  const btn=document.getElementById("runInsightsBtn");
+  btn.disabled=false;
+  btn.textContent="⚡ Analyse My Spending";
+}
+
+async function getGroqInsights(){
+  if(!transactions.length) return showToast("Add some transactions first");
+
+  // Build financial summary
+  let income=0, expense=0, catTotals={}, monthMap={};
+  transactions.forEach(t=>{
+    const mo=t.date?t.date.slice(0,7):"Unknown";
+    if(!monthMap[mo]) monthMap[mo]={income:0,expense:0};
+    if(t.amount>0){ income+=t.amount; monthMap[mo].income+=t.amount; }
+    else{ expense+=Math.abs(t.amount); monthMap[mo].expense+=Math.abs(t.amount); }
+    if(t.amount<0) catTotals[t.category]=(catTotals[t.category]||0)+Math.abs(t.amount);
+  });
+
+  const currency = getCurrency().code;
+  const summary = `User's financial data in ${currency}:
+- Total Income: ${income}
+- Total Expenses: ${expense}
+- Net Balance: ${income - expense}
+- Savings Rate: ${income>0?(((income-expense)/income)*100).toFixed(1):0}%
+- Spending by category: ${JSON.stringify(catTotals)}
+- Monthly breakdown: ${JSON.stringify(monthMap)}
+- Number of transactions: ${transactions.length}`;
+
+  const prompt = `You are a friendly personal finance advisor. Analyse this user's financial data and give 4-5 specific, actionable insights. Be conversational, warm and encouraging. Point out patterns, warn about overspending in any category, highlight positive habits, and suggest one concrete improvement. Use emojis naturally. Keep each insight 2-3 sentences max.
+
+Return ONLY a JSON array, no markdown, no extra text:
+[{"icon":"💡","title":"Short title","insight":"..."},{"icon":"📊","title":"Short title","insight":"..."}]`;
+
+  document.getElementById("insightsIdle").style.display="none";
+  document.getElementById("insightsLoading").style.display="flex";
+  const btn=document.getElementById("runInsightsBtn");
+  btn.disabled=true;
+
+  try{
+    const res = await fetch("/api/insight", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        prompt,
+        summary
+      })
+    });
+
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+    const text = data.insights || "";
+    const insights = JSON.parse(text.replace(/```json|```/g,"").trim());
+
+    document.getElementById("insightsCards").innerHTML = insights.map(i=>`
+      <div class="insight-card">
+        <div class="insight-icon">${i.icon}</div>
+        <div class="insight-body">
+          <div class="insight-title">${i.title||""}</div>
+          <p class="insight-text">${i.insight}</p>
+        </div>
+      </div>`).join("");
+
+    document.getElementById("insightsLoading").style.display="none";
+    document.getElementById("insightsResult").style.display="block";
+
+  } catch(err){
+    const msg = err.message || "";
+    let friendly = "Something went wrong. Please try again.";
+    if(msg.includes("401") || msg.includes("auth") || msg.includes("key") || msg.includes("GROQ_API_KEY"))
+      friendly = "The server is missing a valid Groq key. Check your .env file and restart the server.";
+    else if(msg.includes("429") || msg.includes("rate") || msg.includes("quota"))
+      friendly = "Rate limit hit. Wait a moment and try again — Groq free tier resets quickly. ⏱";
+    else if(msg.includes("network") || msg.includes("fetch") || msg.includes("Failed"))
+      friendly = "Network error. Check your internet connection and make sure the app is running through a local server.";
+
+    document.getElementById("insightsCards").innerHTML=`
+      <div class="insight-card">
+        <div class="insight-icon">😕</div>
+        <div><p>${friendly}</p></div>
+      </div>`;
+    document.getElementById("insightsLoading").style.display="none";
+    document.getElementById("insightsResult").style.display="block";
+  }
+}
+
+// ══════════════════════════════════════════════
 //  BILL REMINDERS
 // ══════════════════════════════════════════════
 document.getElementById("billsBtn").addEventListener("click", openBillsModal);
@@ -965,36 +1072,3 @@ updateCurrencyUI();
 processRecurring();
 render();
 renderDueSoon();
-// Add this function somewhere in your JS file
-async function fetchFinTrackInsight() {
-  const rawTotals = localStorage.getItem('fintrack_totals'); 
-  const spendingData = rawTotals ? JSON.parse(rawTotals) : { message: "No data yet." };
-
-  try {
-    // We are calling YOUR new secure file, not Google directly
-    const response = await fetch('/api/insight', {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ spendingData: spendingData })
-    });
-
-    const data = await response.json();
-
-    if (data.insight) {
-      console.log("Insight generated!");
-      // Make sure you have an element with id="insight-box" in your HTML
-      document.getElementById('insight-box').innerText = data.insight;
-    } else {
-      console.error("Error generating insight:", data.error);
-    }
-  } catch (error) {
-    console.error("Fetch request failed:", error);
-  }
-}
-
-// Example of how to trigger it when a button is clicked
-// Make sure you have a button with id="generate-btn" in your HTML
-document.getElementById('generate-btn').addEventListener('click', async () => {
-  document.getElementById('insight-box').innerText = "Analyzing your spending...";
-  await fetchFinTrackInsight();
-});
