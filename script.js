@@ -318,7 +318,9 @@ Return ONLY a JSON array, no markdown, no extra text:
     if(!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
     const text = data.insights || "";
-    const insights = JSON.parse(text.replace(/```json|```/g,"").trim());
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("Could not find a valid JSON array in the AI response.");
+    const insights = JSON.parse(jsonMatch[0].trim());
 
     document.getElementById("insightsCards").innerHTML = insights.map(i=>`
       <div class="insight-card">
