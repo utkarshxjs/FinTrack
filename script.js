@@ -306,7 +306,15 @@ Return ONLY a JSON array, no markdown, no extra text:
       })
     });
 
-    const data = await res.json();
+    const raw = await res.text();
+    let data = {};
+    try{
+      data = raw ? JSON.parse(raw) : {};
+    }catch{
+      if(raw.includes("<!DOCTYPE") || raw.includes("<html"))
+        throw new Error("API route not available. Start FinTrack with `node server.js`.");
+      throw new Error("Invalid JSON response from /api/insight");
+    }
     if(!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
     const text = data.insights || "";
@@ -331,8 +339,10 @@ Return ONLY a JSON array, no markdown, no extra text:
       friendly = "The server is missing a valid Groq key. Check your .env file and restart the server.";
     else if(msg.includes("429") || msg.includes("rate") || msg.includes("quota"))
       friendly = "Rate limit hit. Wait a moment and try again — Groq free tier resets quickly. ⏱";
+    else if(msg.includes("API route not available"))
+      friendly = "The app is running without its backend. Start FinTrack with `node server.js` so `/api/insight` is available.";
     else if(msg.includes("network") || msg.includes("fetch") || msg.includes("Failed"))
-      friendly = "Network error. Check your internet connection and make sure the app is running through a local server.";
+      friendly = "Network error. Check your internet connection and make sure FinTrack is running with `node server.js`.";
 
     document.getElementById("insightsCards").innerHTML=`
       <div class="insight-card">

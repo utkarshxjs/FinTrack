@@ -1,16 +1,16 @@
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const apiKey = process.env.GROQ_API_KEY;
+export async function requestGroqInsights({ summary, prompt, apiKey = process.env.GROQ_API_KEY }) {
   if (!apiKey) {
-    return res.status(500).json({ error: "Missing GROQ_API_KEY on the server" });
+    return {
+      status: 500,
+      body: { error: "Missing GROQ_API_KEY on the server" },
+    };
   }
 
-  const { summary, prompt } = req.body ?? {};
   if (!summary || !prompt) {
-    return res.status(400).json({ error: "Missing prompt payload" });
+    return {
+      status: 400,
+      body: { error: "Missing prompt payload" },
+    };
   }
 
   try {
@@ -37,16 +37,33 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: data?.error?.message || `Groq request failed with HTTP ${response.status}`,
-      });
+      return {
+        status: response.status,
+        body: {
+          error: data?.error?.message || `Groq request failed with HTTP ${response.status}`,
+        },
+      };
     }
 
-    const text = data.choices?.[0]?.message?.content || "";
-    return res.status(200).json({ insights: text });
+    return {
+      status: 200,
+      body: { insights: data.choices?.[0]?.message?.content || "" },
+    };
   } catch (error) {
-    return res.status(500).json({
-      error: error instanceof Error ? error.message : "Unexpected server error",
-    });
+    return {
+      status: 500,
+      body: {
+        error: error instanceof Error ? error.message : "Unexpected server error",
+      },
+    };
   }
+}
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const result = await requestGroqInsights(req.body ?? {});
+  return res.status(result.status).json(result.body);
 }
